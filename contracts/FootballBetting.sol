@@ -1515,7 +1515,7 @@ contract FootballBetting {
     else {
       bets[_betID].acceptor.transfer(bets[_betID].totalAmount);
     }
-    BetChange(betID);
+    BetChange(_betID);
   }
 
   /**
