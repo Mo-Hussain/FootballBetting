@@ -345,7 +345,7 @@ library bytesutils {
         uint _ptr;
     }
 
-    function memcpy(uint dest, uint src, uint len) private {
+    function memcpy(uint dest, uint src, uint len) private pure {
         // Copy word-length chunks while possible
         for(; len >= 32; len -= 32) {
             assembly {
@@ -369,7 +369,7 @@ library bytesutils {
      * @param self The bytes to make a slice from.
      * @return A newly allocated slice containing the entire bytes.
      */
-    function toSlice(bytes self) internal returns (slice) {
+    function toSlice(bytes self) internal pure returns (slice) {
         uint ptr;
         assembly {
             ptr := add(self, 0x20)
@@ -377,7 +377,7 @@ library bytesutils {
         return slice(self.length, ptr);
     }
 
-    function addOffset(slice self, uint32 offset) internal returns (slice) {
+    function addOffset(slice self, uint32 offset) internal pure returns (slice) {
         require(offset <= self._len);
         self._ptr += offset;
         self._len -= offset;
@@ -390,7 +390,7 @@ library bytesutils {
      * @param offset The offset within the bytestring.
      * @return A newly allocated slice containing the entire bytes.
      */
-    function toSlice(bytes self, uint32 offset) internal returns (slice) {
+    function toSlice(bytes self, uint32 offset) internal pure returns (slice) {
         slice memory ret = toSlice(self);
         return addOffset(ret, offset);
     }
@@ -401,7 +401,7 @@ library bytesutils {
      * @param self The value to find the length of.
      * @return The length of the string, from 0 to 32.
      */
-    function len(bytes32 self) internal returns (uint) {
+    function len(bytes32 self) internal pure returns (uint) {
         uint ret;
         if (self == 0)
             return 0;
@@ -434,7 +434,7 @@ library bytesutils {
      * @return A new slice containing the value of the input argument up to the
      *         first null.
      */
-    function toSliceB32(bytes32 self) internal returns (slice ret) {
+    function toSliceB32(bytes32 self) internal pure returns (slice ret) {
         // Allocate space for `self` in memory, copy it there, and point ret at it
         assembly {
             let ptr := mload(0x40)
@@ -450,7 +450,7 @@ library bytesutils {
      * @param self The slice to copy.
      * @return A new slice containing the same data as `self`.
      */
-    function copy(slice self) internal returns (slice) {
+    function copy(slice self) internal pure returns (slice) {
         return slice(self._len, self._ptr);
     }
 
@@ -459,8 +459,8 @@ library bytesutils {
      * @param self The slice to copy.
      * @return A newly allocated bytestring containing the slice's text.
      */
-    function toBytes(slice self) internal returns (bytes) {
-        var ret = new bytes(self._len);
+    function toBytes(slice self) internal pure returns (bytes) {
+        bytes memory ret = new bytes(self._len);
         uint retptr;
         assembly { retptr := add(ret, 32) }
 
@@ -474,8 +474,8 @@ library bytesutils {
      * @param self The slice to copy.
      * @return A newly allocated string containing the slice's text.
      */
-    function toString(slice self) internal returns (string) {
-        var ret = new string(self._len);
+    function toString(slice self) internal pure returns (string) {
+        string memory ret = new string(self._len);
         uint retptr;
         assembly { retptr := add(ret, 32) }
 
@@ -490,7 +490,7 @@ library bytesutils {
      * @param self The slice to operate on.
      * @return The length of the slice in bytes.
      */
-    function len(slice self) internal returns (uint) {
+    function len(slice self) internal pure returns (uint) {
         return self._len;
     }
 
@@ -499,7 +499,7 @@ library bytesutils {
      * @param self The slice to operate on.
      * @return True if the slice is empty, False otherwise.
      */
-    function empty(slice self) internal returns (bool) {
+    function empty(slice self) internal pure returns (bool) {
         return self._len == 0;
     }
 
@@ -512,13 +512,13 @@ library bytesutils {
      * @param other The second slice to compare.
      * @return The result of the comparison.
      */
-    function compare(slice self, slice other) internal returns (int) {
+    function compare(slice self, slice other) internal pure returns (int) {
         uint shortest = self._len;
         if (other._len < self._len)
             shortest = other._len;
 
-        var selfptr = self._ptr;
-        var otherptr = other._ptr;
+        uint selfptr = self._ptr;
+        uint otherptr = other._ptr;
         for (uint idx = 0; idx < shortest; idx += 32) {
             uint a;
             uint b;
@@ -529,7 +529,7 @@ library bytesutils {
             if (a != b) {
                 // Mask out irrelevant bytes and check again
                 uint mask = ~(2 ** (8 * (32 - shortest + idx)) - 1);
-                var diff = (a & mask) - (b & mask);
+                uint256 diff = (a & mask) - (b & mask);
                 if (diff != 0)
                     return int(diff);
             }
@@ -545,7 +545,7 @@ library bytesutils {
      * @param self The second slice to compare.
      * @return True if the slices are equal, false otherwise.
      */
-    function equals(slice self, slice other) internal returns (bool) {
+    function equals(slice self, slice other) internal pure returns (bool) {
         return compare(self, other) == 0;
     }
 
@@ -556,7 +556,7 @@ library bytesutils {
      * @param rune The slice that will contain the first rune.
      * @return `rune`.
      */
-    function nextRune(slice self, slice rune) internal returns (slice) {
+    function nextRune(slice self, slice rune) internal pure returns (slice) {
         rune._ptr = self._ptr;
 
         if (self._len == 0) {
@@ -564,12 +564,12 @@ library bytesutils {
             return rune;
         }
 
-		// Byte runes are always of length 1
-        uint len = 1;
+		    // Byte runes are always of length 1
+        uint len1 = 1;
 
-        self._ptr += len;
-        self._len -= len;
-        rune._len = len;
+        self._ptr += len1;
+        self._len -= len1;
+        rune._len = len1;
         return rune;
     }
 
@@ -579,7 +579,7 @@ library bytesutils {
      * @param self The slice to operate on.
      * @return A slice containing only the first rune from `self`.
      */
-    function nextRune(slice self) internal returns (slice ret) {
+    function nextRune(slice self) internal pure returns (slice ret) {
         nextRune(self, ret);
     }
 
@@ -588,17 +588,17 @@ library bytesutils {
      * @param self The slice to operate on.
      * @return The number of the first codepoint in the slice.
      */
-    function ord(slice self) internal returns (uint ret) {
+    function ord(slice self) internal pure returns (uint ret) {
         if (self._len == 0) {
             return 0;
         }
 
         uint word;
-        uint div = 2 ** 248;
+        uint divisor = 2 ** 248;
 
         // Load the rune into the MSBs of b
         assembly { word:= mload(mload(add(self, 32))) }
-        ret = word / div;
+        ret = word / divisor;
 
         return ret;
     }
@@ -608,7 +608,7 @@ library bytesutils {
      * @param self The slice to hash.
      * @return The hash of the slice.
      */
-    function keccak(slice self) internal returns (bytes32 ret) {
+    function keccak(slice self) internal pure returns (bytes32 ret) {
         assembly {
             ret := sha3(mload(add(self, 32)), mload(self))
         }
@@ -619,7 +619,7 @@ library bytesutils {
      * @param self The slice to hash.
      * @return The hash of the slice.
      */
-    function slicesha256(slice self) internal returns (bytes32) {
+    function slicesha256(slice self) internal pure returns (bytes32) {
         bytes memory x = toBytes(self);
         return sha256(x);
     }
@@ -631,7 +631,7 @@ library bytesutils {
      * @param needle The slice to search for.
      * @return True if the slice starts with the provided text, false otherwise.
      */
-    function startsWith(slice self, slice needle) internal returns (bool) {
+    function startsWith(slice self, slice needle) internal pure returns (bool) {
         if (self._len < needle._len) {
             return false;
         }
@@ -657,7 +657,7 @@ library bytesutils {
      * @param needle The slice to search for.
      * @return `self`
      */
-    function beyond(slice self, slice needle) internal returns (slice) {
+    function beyond(slice self, slice needle) internal pure returns (slice) {
         if (self._len < needle._len) {
             return self;
         }
@@ -686,12 +686,12 @@ library bytesutils {
      * @param needle The slice to search for.
      * @return True if the slice starts with the provided text, false otherwise.
      */
-    function endsWith(slice self, slice needle) internal returns (bool) {
+    function endsWith(slice self, slice needle) internal pure returns (bool) {
         if (self._len < needle._len) {
             return false;
         }
 
-        var selfptr = self._ptr + self._len - needle._len;
+        uint selfptr = self._ptr + self._len - needle._len;
 
         if (selfptr == needle._ptr) {
             return true;
@@ -714,12 +714,12 @@ library bytesutils {
      * @param needle The slice to search for.
      * @return `self`
      */
-    function until(slice self, slice needle) internal returns (slice) {
+    function until(slice self, slice needle) internal pure returns (slice) {
         if (self._len < needle._len) {
             return self;
         }
 
-        var selfptr = self._ptr + self._len - needle._len;
+        uint selfptr = self._ptr + self._len - needle._len;
         bool equal = true;
         if (selfptr != needle._ptr) {
             assembly {
@@ -736,84 +736,87 @@ library bytesutils {
         return self;
     }
 
-    // Returns the memory address of the first byte of the first occurrence of
-    // `needle` in `self`, or the first byte after `self` if not found.
-    function findPtr(uint selflen, uint selfptr, uint needlelen, uint needleptr) private returns (uint) {
-        uint ptr;
-        uint idx;
+  // Returns the memory address of the first byte of the first occurrence of
+  // `needle` in `self`, or the first byte after `self` if not found.
+  function findPtr(uint selflen, uint selfptr, uint needlelen, uint needleptr) private pure returns (uint) {
+    uint ptr = selfptr;
+    uint idx;
 
-        if (needlelen <= selflen) {
-            if (needlelen <= 32) {
-                // Optimized assembly for 68 gas per byte on short strings
-                assembly {
-                    let mask := not(sub(exp(2, mul(8, sub(32, needlelen))), 1))
-                    let needledata := and(mload(needleptr), mask)
-                    let end := add(selfptr, sub(selflen, needlelen))
-                    ptr := selfptr
-                    loop:
-                    jumpi(exit, eq(and(mload(ptr), mask), needledata))
-                    ptr := add(ptr, 1)
-                    jumpi(loop, lt(sub(ptr, 1), end))
-                    ptr := add(selfptr, selflen)
-                    exit:
-                }
-                return ptr;
-            } else {
-                // For long needles, use hashing
-                bytes32 hash;
-                assembly { hash := sha3(needleptr, needlelen) }
-                ptr = selfptr;
-                for (idx = 0; idx <= selflen - needlelen; idx++) {
-                    bytes32 testHash;
-                    assembly { testHash := sha3(ptr, needlelen) }
-                    if (hash == testHash)
-                        return ptr;
-                    ptr += 1;
-                }
+    if (needlelen <= selflen) {
+        if (needlelen <= 32) {
+            bytes32 mask = bytes32(~(2 ** (8 * (32 - needlelen)) - 1));
+
+            bytes32 needledata;
+            assembly { needledata := and(mload(needleptr), mask) }
+
+            uint end = selfptr + selflen - needlelen;
+            bytes32 ptrdata;
+            assembly { ptrdata := and(mload(ptr), mask) }
+
+            while (ptrdata != needledata) {
+                if (ptr >= end)
+                    return selfptr + selflen;
+                ptr++;
+                assembly { ptrdata := and(mload(ptr), mask) }
+            }
+            return ptr;
+        } else {
+            // For long needles, use hashing
+            bytes32 hash;
+            assembly { hash := sha3(needleptr, needlelen) }
+
+            for (idx = 0; idx <= selflen - needlelen; idx++) {
+                bytes32 testHash;
+                assembly { testHash := sha3(ptr, needlelen) }
+                if (hash == testHash)
+                    return ptr;
+                ptr += 1;
             }
         }
-        return selfptr + selflen;
     }
+    return selfptr + selflen;
+  }
 
-    // Returns the memory address of the first byte after the last occurrence of
-    // `needle` in `self`, or the address of `self` if not found.
-    function rfindPtr(uint selflen, uint selfptr, uint needlelen, uint needleptr) private returns (uint) {
-        uint ptr;
+  // Returns the memory address of the first byte after the last occurrence of
+  // `needle` in `self`, or the address of `self` if not found.
+  function rfindPtr(uint selflen, uint selfptr, uint needlelen, uint needleptr) private pure returns (uint) {
+      uint ptr;
 
-        if (needlelen <= selflen) {
-            if (needlelen <= 32) {
-                // Optimized assembly for 69 gas per byte on short strings
-                assembly {
-                    let mask := not(sub(exp(2, mul(8, sub(32, needlelen))), 1))
-                    let needledata := and(mload(needleptr), mask)
-                    ptr := add(selfptr, sub(selflen, needlelen))
-                    loop:
-                    jumpi(ret, eq(and(mload(ptr), mask), needledata))
-                    ptr := sub(ptr, 1)
-                    jumpi(loop, gt(add(ptr, 1), selfptr))
-                    ptr := selfptr
-                    jump(exit)
-                    ret:
-                    ptr := add(ptr, needlelen)
-                    exit:
-                }
-                return ptr;
-            } else {
-                // For long needles, use hashing
-                bytes32 hash;
-                assembly { hash := sha3(needleptr, needlelen) }
-                ptr = selfptr + (selflen - needlelen);
-                while (ptr >= selfptr) {
-                    bytes32 testHash;
-                    assembly { testHash := sha3(ptr, needlelen) }
-                    if (hash == testHash)
-                        return ptr + needlelen;
-                    ptr -= 1;
-                }
-            }
-        }
-        return selfptr;
-    }
+      if (needlelen <= selflen) {
+          if (needlelen <= 32) {
+              bytes32 mask = bytes32(~(2 ** (8 * (32 - needlelen)) - 1));
+
+              bytes32 needledata;
+              assembly { needledata := and(mload(needleptr), mask) }
+
+              ptr = selfptr + selflen - needlelen;
+              bytes32 ptrdata;
+              assembly { ptrdata := and(mload(ptr), mask) }
+
+              while (ptrdata != needledata) {
+                  if (ptr <= selfptr)
+                      return selfptr;
+                  ptr--;
+                  assembly { ptrdata := and(mload(ptr), mask) }
+              }
+              return ptr + needlelen;
+          } else {
+              // For long needles, use hashing
+              bytes32 hash;
+              assembly { hash := sha3(needleptr, needlelen) }
+              ptr = selfptr + (selflen - needlelen);
+              while (ptr >= selfptr) {
+                  bytes32 testHash;
+                  assembly { testHash := sha3(ptr, needlelen) }
+                  if (hash == testHash)
+                      return ptr + needlelen;
+                  ptr -= 1;
+              }
+          }
+      }
+      return selfptr;
+  }
+
 
     /*
      * @dev Modifies `self` to contain everything from the first occurrence of
@@ -823,7 +826,7 @@ library bytesutils {
      * @param needle The text to search for.
      * @return `self`.
      */
-    function find(slice self, slice needle) internal returns (slice) {
+    function find(slice self, slice needle) internal pure returns (slice) {
         uint ptr = findPtr(self._len, self._ptr, needle._len, needle._ptr);
         self._len -= ptr - self._ptr;
         self._ptr = ptr;
@@ -838,7 +841,7 @@ library bytesutils {
      * @param needle The text to search for.
      * @return `self`.
      */
-    function rfind(slice self, slice needle) internal returns (slice) {
+    function rfind(slice self, slice needle) internal pure returns (slice) {
         uint ptr = rfindPtr(self._len, self._ptr, needle._len, needle._ptr);
         self._len = ptr - self._ptr;
         return self;
@@ -854,7 +857,7 @@ library bytesutils {
      * @param token An output parameter to which the first token is written.
      * @return `token`.
      */
-    function split(slice self, slice needle, slice token) internal returns (slice) {
+    function split(slice self, slice needle, slice token) internal pure returns (slice) {
         uint ptr = findPtr(self._len, self._ptr, needle._len, needle._ptr);
         token._ptr = self._ptr;
         token._len = ptr - self._ptr;
@@ -877,7 +880,7 @@ library bytesutils {
      * @param needle The text to search for in `self`.
      * @return The part of `self` up to the first occurrence of `delim`.
      */
-    function split(slice self, slice needle) internal returns (slice token) {
+    function split(slice self, slice needle) internal pure returns (slice token) {
         split(self, needle, token);
     }
 
@@ -891,7 +894,7 @@ library bytesutils {
      * @param token An output parameter to which the first token is written.
      * @return `token`.
      */
-    function rsplit(slice self, slice needle, slice token) internal returns (slice) {
+    function rsplit(slice self, slice needle, slice token) internal pure returns (slice) {
         uint ptr = rfindPtr(self._len, self._ptr, needle._len, needle._ptr);
         token._ptr = ptr;
         token._len = self._len - (ptr - self._ptr);
@@ -913,7 +916,7 @@ library bytesutils {
      * @param needle The text to search for in `self`.
      * @return The part of `self` after the last occurrence of `delim`.
      */
-    function rsplit(slice self, slice needle) internal returns (slice token) {
+    function rsplit(slice self, slice needle) internal pure returns (slice token) {
         rsplit(self, needle, token);
     }
 
@@ -923,10 +926,10 @@ library bytesutils {
      * @param needle The text to search for in `self`.
      * @return The number of occurrences of `needle` found in `self`.
      */
-    function count(slice self, slice needle) internal returns (uint count) {
+    function count(slice self, slice needle) internal pure returns (uint count_overlap) {
         uint ptr = findPtr(self._len, self._ptr, needle._len, needle._ptr) + needle._len;
         while (ptr <= self._ptr + self._len) {
-            count++;
+            count_overlap++;
             ptr = findPtr(self._len - (ptr - self._ptr), ptr, needle._len, needle._ptr) + needle._len;
         }
     }
@@ -937,7 +940,7 @@ library bytesutils {
      * @param needle The text to search for in `self`.
      * @return True if `needle` is found in `self`, false otherwise.
      */
-    function contains(slice self, slice needle) internal returns (bool) {
+    function contains(slice self, slice needle) internal pure returns (bool) {
         return rfindPtr(self._len, self._ptr, needle._len, needle._ptr) != self._ptr;
     }
 
@@ -948,8 +951,8 @@ library bytesutils {
      * @param other The second slice to concatenate.
      * @return The concatenation of the two bytestrings.
      */
-    function concat(slice self, slice other) internal returns (bytes) {
-        var ret = new bytes(self._len + other._len);
+    function concat(slice self, slice other) internal pure returns (bytes) {
+        bytes memory ret = new bytes(self._len + other._len);
         uint retptr;
         assembly { retptr := add(ret, 32) }
         memcpy(retptr, self._ptr, self._len);
@@ -963,7 +966,7 @@ library bytesutils {
      * @param new_len The new length.
      * @return The truncated slice.
      */
-    function truncate(slice self, uint new_len) internal returns (slice){
+    function truncate(slice self, uint new_len) internal pure returns (slice){
         if(self._len > new_len){
             self._len = new_len;
         }
@@ -979,15 +982,15 @@ library bytesutils {
      * @return A newly allocated bytestring containing all the slices in `parts`,
      *         joined with `self`.
      */
-    function join(slice self, slice[] parts) internal returns (bytes) {
+    function join(slice self, slice[] parts) internal pure returns (bytes) {
         if (parts.length == 0)
             return "";
 
-        uint len = self._len * (parts.length - 1);
+        uint length = self._len * (parts.length - 1);
         for(uint i = 0; i < parts.length; i++)
-            len += parts[i]._len;
+            length += parts[i]._len;
 
-        var ret = new bytes(len);
+        bytes memory ret = new bytes(length);
         uint retptr;
         assembly { retptr := add(ret, 32) }
 
@@ -1487,6 +1490,7 @@ contract FootballBetting {
   function resolveBet(uint _betID, bytes memory _proof) public payable {
     // First check that the json being passed in actually has scores for the match
     require(verifyProof(_proof));
+    require(bets[_betID].resolved == false);
 
     string memory json = string(tlsnutils.getHTTPBody(_proof));
     uint returnValue;
@@ -1511,6 +1515,7 @@ contract FootballBetting {
     else {
       bets[_betID].acceptor.transfer(bets[_betID].totalAmount);
     }
+    BetChange(betID);
   }
 
   /**
@@ -1557,7 +1562,7 @@ contract FootballBetting {
   /******** PRIVATE FUNCTIONS ********/
   /***********************************/
 
-  function verifyProof(bytes memory proof) private returns (bool){
+  function verifyProof(bytes memory proof) public returns (bool){
     uint256 qx = 0xe0a5793d275a533d50421b201c2c9a909abb58b1a9c0f9eb9b7963e5c8bc2295;
     uint256 qy = 0xf34d47cb92b6474562675127677d4e446418498884c101aeb38f3afb0cab997e;
 
@@ -1565,5 +1570,10 @@ contract FootballBetting {
       return true;
     }
     return false;
+  }
+
+  function parse(bytes memory _proof, uint _numberElements) public {
+    string memory json = string(tlsnutils.getHTTPBody(_proof));
+    JsmnSolLib.parse(json, _numberElements);
   }
 }
